@@ -25,7 +25,7 @@ from rest_framework.fields import IntegerField
 from cookbook.helper.CustomStorageClass import CachedS3Boto3Storage
 from cookbook.helper.HelperFunctions import str2bool
 from cookbook.helper.image_processing import is_file_type_allowed
-from cookbook.helper.permission_helper import above_space_limit
+from cookbook.helper.permission_helper import above_space_limit, has_group_permission
 from cookbook.helper.property_helper import FoodPropertyHelper
 from cookbook.helper.shopping_helper import RecipeShoppingEditor
 from cookbook.helper.unit_conversion_helper import UnitConversionHelper
@@ -1060,18 +1060,34 @@ class RecipeSerializer(RecipeBaseSerializer):
     last_cooked = serializers.DateTimeField(required=False, allow_null=True, read_only=True)
     food_properties = serializers.SerializerMethodField('get_food_properties')
     created_by = UserSerializer(read_only=True)
+    space = serializers.PrimaryKeyRelatedField(
+        queryset=Space.objects.all(),
+        required=False,
+        allow_null=True,
+        help_text=_('Space to create the recipe in. Only available to admin users.')
+    )
 
     @extend_schema_field(serializers.JSONField)
     def get_food_properties(self, obj):
         fph = FoodPropertyHelper(obj.space)  # initialize with object space since recipes might be viewed anonymously
         return fph.calculate_recipe_properties(obj)
 
+    def get_fields(self, *args, **kwargs):
+        fields = super().get_fields(*args, **kwargs)
+        # Only show space field to admin users
+        try:
+            if not has_group_permission(self.context['request'].user, ['admin']):
+                fields.pop('space', None)
+        except (KeyError, AttributeError):
+            fields.pop('space', None)
+        return fields
+
     class Meta:
         model = Recipe
         fields = (
             'id', 'name', 'description', 'image', 'keywords', 'steps', 'working_time', 'waiting_time', 'created_by', 'created_at', 'updated_at', 'source_url',
             'internal', 'show_ingredient_overview', 'nutrition', 'properties', 'food_properties', 'servings', 'file_path', 'servings_text', 'rating',
-            'last_cooked', 'private', 'shared'
+            'last_cooked', 'private', 'shared', 'space'
         )
         read_only_fields = ['image', 'created_by', 'created_at', 'food_properties']
 
@@ -1079,12 +1095,40 @@ class RecipeSerializer(RecipeBaseSerializer):
         above_limit, msg = above_space_limit(self.context['request'].space)
         if above_limit:
             raise serializers.ValidationError(msg)
+        
+        # Validate that only admin users can specify a different space
+        if 'space' in data and data['space'] is not None:
+            if not has_group_permission(self.context['request'].user, ['admin']):
+                raise serializers.ValidationError(_('Only admin users can specify a different space for recipes.'))
+            
+            # Check if the user has access to the specified space
+            if not UserSpace.objects.filter(user=self.context['request'].user, space=data['space']).exists():
+                raise serializers.ValidationError(_('You do not have access to the specified space.'))
+        
         return super().validate(data)
 
     def create(self, validated_data):
         validated_data['created_by'] = self.context['request'].user
-        validated_data['space'] = self.context['request'].space
+        
+        # Use specified space if provided by admin user, otherwise use current space
+        if 'space' in validated_data and validated_data['space'] is not None:
+            validated_data['space'] = validated_data['space']
+        else:
+            validated_data['space'] = self.context['request'].space
+            
         return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        # Handle space changes for admin users
+        if 'space' in validated_data and validated_data['space'] is not None:
+            if not has_group_permission(self.context['request'].user, ['admin']):
+                raise serializers.ValidationError(_('Only admin users can change the space of recipes.'))
+            
+            # Check if the user has access to the specified space
+            if not UserSpace.objects.filter(user=self.context['request'].user, space=validated_data['space']).exists():
+                raise serializers.ValidationError(_('You do not have access to the specified space.'))
+        
+        return super().update(instance, validated_data)
 
 
 class RecipeImageSerializer(WritableNestedModelSerializer):
