@@ -575,6 +575,10 @@ class KeywordSerializer(UniqueFieldsMixin, ExtendedRecipeMixin):
 
     recipe_filter = 'keywords'
 
+    def __init__(self, space) -> None:
+        self.space = space
+        super().__init__()
+
     @extend_schema_field(str)
     def get_label(self, obj):
         return str(obj)
@@ -583,7 +587,10 @@ class KeywordSerializer(UniqueFieldsMixin, ExtendedRecipeMixin):
         # since multi select tags dont have id's
         # duplicate names might be routed to create
         name = validated_data.pop('name').strip()
-        space = validated_data.pop('space', self.context['request'].space)
+        if self.space:
+            space = self.space
+        else:
+            space = validated_data.pop('space', self.context['request'].space)
         obj, created = Keyword.objects.get_or_create(name=name, space=space, defaults=validated_data)
         return obj
 
@@ -918,8 +925,15 @@ class StepSerializer(WritableNestedModelSerializer, ExtendedRecipeMixin):
     step_recipe_data = serializers.SerializerMethodField('get_step_recipe_data')
     recipe_filter = 'steps'
 
+    def __init__(self, space) -> None:
+        self.space = space
+        super().__init__()
+
     def create(self, validated_data):
-        validated_data['space'] = self.context['request'].space
+        if self.space:
+            validated_data['space'] = self.space
+        else:
+            validated_data['space'] = self.context['request'].space
         return super().create(validated_data)
 
     @extend_schema_field(str)
@@ -1053,8 +1067,6 @@ class RecipeOverviewSerializer(RecipeBaseSerializer):
 class RecipeSerializer(RecipeBaseSerializer):
     nutrition = NutritionInformationSerializer(allow_null=True, required=False)
     properties = PropertySerializer(many=True, required=False)
-    steps = StepSerializer(many=True)
-    keywords = KeywordSerializer(many=True, required=False)
     shared = UserSerializer(many=True, required=False)
     rating = CustomDecimalField(required=False, allow_null=True, read_only=True)
     last_cooked = serializers.DateTimeField(required=False, allow_null=True, read_only=True)
@@ -1066,6 +1078,8 @@ class RecipeSerializer(RecipeBaseSerializer):
         allow_null=True,
         help_text=_('Space to create the recipe in. Only available to admin users.')
     )
+    steps = StepSerializer(many=True, space=space)
+    keywords = KeywordSerializer(many=True, required=False, space=space)
     user = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(),
         required=False,
