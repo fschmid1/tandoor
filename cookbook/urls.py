@@ -108,6 +108,7 @@ urlpatterns = [
     path('api/switch-active-space/<int:space_id>/', api.switch_active_space, name='api_switch_active_space'),
     path('api/download-file/<int:file_id>/', api.download_file, name='api_download_file'),
     path('api/user-current-space/<str:username>/', api.get_user_current_space, name='api_user_current_space'),
+    path('api/user-by-username/<str:username>/', api.get_user_by_username, name='api_user_by_username'),
     path('telegram/setup/<int:pk>', telegram.setup_bot, name='telegram_setup'),
     path('telegram/remove/<int:pk>', telegram.remove_bot, name='telegram_remove'),
     path('telegram/hook/<slug:token>/', telegram.hook, name='telegram_hook'),

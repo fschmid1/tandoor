@@ -2447,3 +2447,23 @@ def get_user_current_space(request, username):
     except Exception:
         traceback.print_exc()
         return Response({'error': True, 'msg': 'Internal server error.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@extend_schema(
+    responses=UserSerializer(many=False),
+    parameters=[OpenApiParameter(name='username', description='Username of the user to retrieve', type=str, required=True)]
+)
+@api_view(['GET'])
+@permission_classes([CustomIsAdmin & CustomTokenHasReadWriteScope])
+def get_user_by_username(request, username):
+    """
+    Admin-only endpoint to get user details by username.
+    """
+    try:
+        user = User.objects.get(username=username)
+        return Response(UserSerializer(user, context={'request': request}).data, status=status.HTTP_200_OK)
+    except User.DoesNotExist:
+        return Response({'error': True, 'msg': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception:
+        traceback.print_exc()
+        return Response({'error': True, 'msg': 'Internal server error.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
