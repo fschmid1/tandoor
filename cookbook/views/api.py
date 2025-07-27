@@ -2428,16 +2428,16 @@ def ingredient_from_string(request):
 
 @extend_schema(
     responses=SpaceSerializer(many=False),
-    parameters=[OpenApiParameter(name='user_id', description='ID of the user to get the current space for', type=int, required=True)]
+    parameters=[OpenApiParameter(name='username', description='Username of the user to get the current space for', type=str, required=True)]
 )
 @api_view(['GET'])
 @permission_classes([CustomIsAdmin & CustomTokenHasReadWriteScope])
-def get_user_current_space(request, user_id):
+def get_user_current_space(request, username):
     """
-    Admin-only endpoint to get the current active space of a given user.
+    Admin-only endpoint to get the current active space of a given user by username.
     """
     try:
-        user = User.objects.get(pk=user_id)
+        user = User.objects.get(username=username)
         space = user.get_active_space()
         if space is None:
             return Response({'error': True, 'msg': 'User has no active space.'}, status=status.HTTP_404_NOT_FOUND)
