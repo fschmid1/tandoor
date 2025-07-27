@@ -1066,6 +1066,12 @@ class RecipeSerializer(RecipeBaseSerializer):
         allow_null=True,
         help_text=_('Space to create the recipe in. Only available to admin users.')
     )
+    user = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(),
+        required=False,
+        allow_null=True,
+        help_text=_('User to create the recipe for. Only available to admin users.')
+    )
 
     @extend_schema_field(serializers.JSONField)
     def get_food_properties(self, obj):
@@ -1078,8 +1084,10 @@ class RecipeSerializer(RecipeBaseSerializer):
         try:
             if not has_group_permission(self.context['request'].user, ['admin']):
                 fields.pop('space', None)
+                fields.pop('user', None)
         except (KeyError, AttributeError):
             fields.pop('space', None)
+            fields.pop('user', None)
         return fields
 
     class Meta:
@@ -1087,7 +1095,7 @@ class RecipeSerializer(RecipeBaseSerializer):
         fields = (
             'id', 'name', 'description', 'image', 'keywords', 'steps', 'working_time', 'waiting_time', 'created_by', 'created_at', 'updated_at', 'source_url',
             'internal', 'show_ingredient_overview', 'nutrition', 'properties', 'food_properties', 'servings', 'file_path', 'servings_text', 'rating',
-            'last_cooked', 'private', 'shared', 'space'
+            'last_cooked', 'private', 'shared', 'space', 'user'
         )
         read_only_fields = ['image', 'created_by', 'created_at', 'food_properties']
 
@@ -1100,11 +1108,17 @@ class RecipeSerializer(RecipeBaseSerializer):
         if 'space' in data and data['space'] is not None:
             if not has_group_permission(self.context['request'].user, ['admin']):
                 raise serializers.ValidationError(_('Only admin users can specify a different space for recipes.'))
+        if 'user' in data and data['user'] is not None:
+            if not has_group_permission(self.context['request'].user, ['admin']):
+                raise serializers.ValidationError(_('Only admin users can specify a different user for recipes.'))
             
         return super().validate(data)
 
     def create(self, validated_data):
-        validated_data['created_by'] = self.context['request'].user
+        if 'user' in validated_data and validated_data['user'] is not None:
+            validated_data['created_by'] = validated_data['user']
+        else:
+            validated_data['created_by'] = self.context['request'].user
         
         # Use specified space if provided by admin user, otherwise use current space
         if 'space' in validated_data and validated_data['space'] is not None:
