@@ -2424,3 +2424,26 @@ def ingredient_from_string(request):
         ingredient['unit'] = {'name': unit.name, 'id': unit.id}
 
     return JsonResponse(ingredient, status=200)
+
+
+@extend_schema(
+    responses=SpaceSerializer(many=False),
+    parameters=[OpenApiParameter(name='user_id', description='ID of the user to get the current space for', type=int, required=True)]
+)
+@api_view(['GET'])
+@permission_classes([CustomIsAdmin & CustomTokenHasReadWriteScope])
+def get_user_current_space(request, user_id):
+    """
+    Admin-only endpoint to get the current active space of a given user.
+    """
+    try:
+        user = User.objects.get(pk=user_id)
+        space = user.get_active_space()
+        if space is None:
+            return Response({'error': True, 'msg': 'User has no active space.'}, status=status.HTTP_404_NOT_FOUND)
+        return Response(SpaceSerializer(space, context={'request': request}).data, status=status.HTTP_200_OK)
+    except User.DoesNotExist:
+        return Response({'error': True, 'msg': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception:
+        traceback.print_exc()
+        return Response({'error': True, 'msg': 'Internal server error.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
