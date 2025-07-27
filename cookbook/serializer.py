@@ -1101,10 +1101,6 @@ class RecipeSerializer(RecipeBaseSerializer):
             if not has_group_permission(self.context['request'].user, ['admin']):
                 raise serializers.ValidationError(_('Only admin users can specify a different space for recipes.'))
             
-            # Check if the user has access to the specified space
-            if not UserSpace.objects.filter(user=self.context['request'].user, space=data['space']).exists():
-                raise serializers.ValidationError(_('You do not have access to the specified space.'))
-        
         return super().validate(data)
 
     def create(self, validated_data):
@@ -1124,9 +1120,6 @@ class RecipeSerializer(RecipeBaseSerializer):
             if not has_group_permission(self.context['request'].user, ['admin']):
                 raise serializers.ValidationError(_('Only admin users can change the space of recipes.'))
             
-            # Check if the user has access to the specified space
-            if not UserSpace.objects.filter(user=self.context['request'].user, space=validated_data['space']).exists():
-                raise serializers.ValidationError(_('You do not have access to the specified space.'))
         
         return super().update(instance, validated_data)
 
