@@ -606,7 +606,6 @@ class KeywordSerializer(UniqueFieldsMixin, ExtendedRecipeMixin):
             space = validated_data['space']
         else:
             space = self.context['request'].space
-        validated_data.pop('space', None)
         obj, created = Keyword.objects.get_or_create(name=name, space=space, defaults=validated_data)
         return obj
 
@@ -975,7 +974,6 @@ class StepSerializer(WritableNestedModelSerializer, ExtendedRecipeMixin):
         else:
             space = self.context['request'].space
         validated_data['space'] = space
-        validated_data.pop('space', None)
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
