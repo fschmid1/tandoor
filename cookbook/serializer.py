@@ -572,33 +572,55 @@ class KeywordLabelSerializer(serializers.ModelSerializer):
 class KeywordSerializer(UniqueFieldsMixin, ExtendedRecipeMixin):
     label = serializers.SerializerMethodField('get_label', allow_null=False)
     parent = IntegerField(read_only=True)
-
+    space = serializers.PrimaryKeyRelatedField(
+        queryset=Space.objects.all(),
+        required=False,
+        allow_null=True,
+        help_text=_('Space to create the keyword in. Only available to admin users.')
+    )
     recipe_filter = 'keywords'
-
-    def __init__(self, space) -> None:
-        self.space = space
-        super().__init__()
 
     @extend_schema_field(str)
     def get_label(self, obj):
         return str(obj)
 
+    def get_fields(self, *args, **kwargs):
+        fields = super().get_fields(*args, **kwargs)
+        try:
+            if not has_group_permission(self.context['request'].user, ['admin']):
+                fields.pop('space', None)
+        except (KeyError, AttributeError):
+            fields.pop('space', None)
+        return fields
+
+    def validate(self, data):
+        if 'space' in data and data['space'] is not None:
+            if not has_group_permission(self.context['request'].user, ['admin']):
+                raise serializers.ValidationError(_('Only admin users can specify a different space for keywords.'))
+        return super().validate(data)
+
     def create(self, validated_data):
-        # since multi select tags dont have id's
-        # duplicate names might be routed to create
         name = validated_data.pop('name').strip()
-        if self.space:
-            space = self.space
+        # Use specified space if provided by admin user, otherwise use current space
+        if 'space' in validated_data and validated_data['space'] is not None:
+            space = validated_data['space']
         else:
-            space = validated_data.pop('space', self.context['request'].space)
+            space = self.context['request'].space
+        validated_data.pop('space', None)
         obj, created = Keyword.objects.get_or_create(name=name, space=space, defaults=validated_data)
         return obj
+
+    def update(self, instance, validated_data):
+        if 'space' in validated_data and validated_data['space'] is not None:
+            if not has_group_permission(self.context['request'].user, ['admin']):
+                raise serializers.ValidationError(_('Only admin users can change the space of keywords.'))
+        return super().update(instance, validated_data)
 
     class Meta:
         model = Keyword
         fields = (
             'id', 'name', 'label', 'description', 'image', 'parent', 'numchild', 'numrecipe', 'created_at',
-            'updated_at', 'full_name')
+            'updated_at', 'full_name', 'space')
         read_only_fields = ('id', 'label', 'numchild', 'parent', 'image')
 
 
@@ -923,18 +945,44 @@ class StepSerializer(WritableNestedModelSerializer, ExtendedRecipeMixin):
     instructions_markdown = serializers.SerializerMethodField('get_instructions_markdown')
     file = UserFileViewSerializer(allow_null=True, required=False)
     step_recipe_data = serializers.SerializerMethodField('get_step_recipe_data')
+    space = serializers.PrimaryKeyRelatedField(
+        queryset=Space.objects.all(),
+        required=False,
+        allow_null=True,
+        help_text=_('Space to create the step in. Only available to admin users.')
+    )
     recipe_filter = 'steps'
 
-    def __init__(self, space) -> None:
-        self.space = space
-        super().__init__()
+    def get_fields(self, *args, **kwargs):
+        fields = super().get_fields(*args, **kwargs)
+        try:
+            if not has_group_permission(self.context['request'].user, ['admin']):
+                fields.pop('space', None)
+        except (KeyError, AttributeError):
+            fields.pop('space', None)
+        return fields
+
+    def validate(self, data):
+        if 'space' in data and data['space'] is not None:
+            if not has_group_permission(self.context['request'].user, ['admin']):
+                raise serializers.ValidationError(_('Only admin users can specify a different space for steps.'))
+        return super().validate(data)
 
     def create(self, validated_data):
-        if self.space:
-            validated_data['space'] = self.space
+        # Use specified space if provided by admin user, otherwise use current space
+        if 'space' in validated_data and validated_data['space'] is not None:
+            space = validated_data['space']
         else:
-            validated_data['space'] = self.context['request'].space
+            space = self.context['request'].space
+        validated_data['space'] = space
+        validated_data.pop('space', None)
         return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        if 'space' in validated_data and validated_data['space'] is not None:
+            if not has_group_permission(self.context['request'].user, ['admin']):
+                raise serializers.ValidationError(_('Only admin users can change the space of steps.'))
+        return super().update(instance, validated_data)
 
     @extend_schema_field(str)
     def get_instructions_markdown(self, obj):
@@ -956,7 +1004,7 @@ class StepSerializer(WritableNestedModelSerializer, ExtendedRecipeMixin):
         model = Step
         fields = (
             'id', 'name', 'instruction', 'ingredients', 'instructions_markdown', 'time', 'order', 'show_as_header', 'file', 'step_recipe',
-            'step_recipe_data', 'numrecipe', 'show_ingredients_table'
+            'step_recipe_data', 'numrecipe', 'show_ingredients_table', 'space'
         )
 
 
@@ -1068,6 +1116,8 @@ class RecipeSerializer(RecipeBaseSerializer):
     nutrition = NutritionInformationSerializer(allow_null=True, required=False)
     properties = PropertySerializer(many=True, required=False)
     shared = UserSerializer(many=True, required=False)
+    steps = StepSerializer(many=True)
+    keywords = KeywordSerializer(many=True, required=False)
     rating = CustomDecimalField(required=False, allow_null=True, read_only=True)
     last_cooked = serializers.DateTimeField(required=False, allow_null=True, read_only=True)
     food_properties = serializers.SerializerMethodField('get_food_properties')
@@ -1078,8 +1128,7 @@ class RecipeSerializer(RecipeBaseSerializer):
         allow_null=True,
         help_text=_('Space to create the recipe in. Only available to admin users.')
     )
-    steps = StepSerializer(many=True, space=space)
-    keywords = KeywordSerializer(many=True, required=False, space=space)
+   
     user = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(),
         required=False,
