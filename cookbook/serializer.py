@@ -1093,7 +1093,7 @@ class RecipeSerializer(RecipeBaseSerializer):
     class Meta:
         model = Recipe
         fields = (
-            'id', 'name', 'description', 'image', 'keywords', 'steps', 'working_time', 'waiting_time', 'created_at', 'updated_at', 'source_url',
+            'id', 'name', 'description', 'image', 'keywords', 'steps', 'working_time', 'waiting_time', 'created_by', 'created_at', 'updated_at', 'source_url',
             'internal', 'show_ingredient_overview', 'nutrition', 'properties', 'food_properties', 'servings', 'file_path', 'servings_text', 'rating',
             'last_cooked', 'private', 'shared', 'space', 'user'
         )
