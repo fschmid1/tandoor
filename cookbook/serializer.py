@@ -625,10 +625,38 @@ class KeywordSerializer(UniqueFieldsMixin, ExtendedRecipeMixin):
 
 class UnitSerializer(UniqueFieldsMixin, ExtendedRecipeMixin, OpenDataModelMixin):
     recipe_filter = 'steps__ingredients__unit'
+    
+    space = serializers.PrimaryKeyRelatedField(
+        queryset=Space.objects.all(),
+        required=False,
+        allow_null=True,
+        help_text=_('Space to create the unit in. Only available to admin users.')
+    )
+
+    def get_fields(self, *args, **kwargs):
+        fields = super().get_fields(*args, **kwargs)
+        try:
+            if not has_group_permission(self.context['request'].user, ['admin']):
+                fields.pop('space', None)
+        except (KeyError, AttributeError):
+            fields.pop('space', None)
+        return fields
+
+    def validate(self, data):
+        if 'space' in data and data['space'] is not None:
+            if not has_group_permission(self.context['request'].user, ['admin']):
+                raise serializers.ValidationError(_('Only admin users can specify a different space for units.'))
+        return super().validate(data)
 
     def create(self, validated_data):
         #  get_or_create drops any field that contains '__' when creating so values must be included in validated data
-        space = validated_data.pop('space', self.context['request'].space)
+        # Use specified space if provided by admin user, otherwise use current space
+        if 'space' in validated_data and validated_data['space'] is not None:
+            space = validated_data['space']
+        else:
+            space = self.context['request'].space
+        validated_data['space'] = space
+        
         if x := validated_data.get('name', None):
             validated_data['name'] = x.strip()
         if x := validated_data.get('name', None):
@@ -651,7 +679,7 @@ class UnitSerializer(UniqueFieldsMixin, ExtendedRecipeMixin, OpenDataModelMixin)
 
     class Meta:
         model = Unit
-        fields = ('id', 'name', 'plural_name', 'description', 'base_unit', 'numrecipe', 'image', 'open_data_slug')
+        fields = ('id', 'name', 'plural_name', 'description', 'base_unit', 'numrecipe', 'image', 'open_data_slug', 'space')
         read_only_fields = ('id', 'numrecipe', 'image')
 
 
@@ -781,8 +809,30 @@ class FoodSerializer(UniqueFieldsMixin, WritableNestedModelSerializer, ExtendedR
     properties_food_unit = UnitSerializer(allow_null=True, required=False)
     properties_food_amount = CustomDecimalField(required=False)
 
+    space = serializers.PrimaryKeyRelatedField(
+        queryset=Space.objects.all(),
+        required=False,
+        allow_null=True,
+        help_text=_('Space to create the food in. Only available to admin users.')
+    )
+
     recipe_filter = 'steps__ingredients__food'
     images = ['recipe__image']
+
+    def get_fields(self, *args, **kwargs):
+        fields = super().get_fields(*args, **kwargs)
+        try:
+            if not has_group_permission(self.context['request'].user, ['admin']):
+                fields.pop('space', None)
+        except (KeyError, AttributeError):
+            fields.pop('space', None)
+        return fields
+
+    def validate(self, data):
+        if 'space' in data and data['space'] is not None:
+            if not has_group_permission(self.context['request'].user, ['admin']):
+                raise serializers.ValidationError(_('Only admin users can specify a different space for foods.'))
+        return super().validate(data)
 
     @extend_schema_field(bool)
     def get_substitute_onhand(self, obj):
@@ -818,7 +868,13 @@ class FoodSerializer(UniqueFieldsMixin, WritableNestedModelSerializer, ExtendedR
         if food := Food.objects.filter(Q(name=name) | Q(plural_name=name)).first():
             return food
 
-        space = validated_data.pop('space', self.context['request'].space)
+        # Use specified space if provided by admin user, otherwise use current space
+        if 'space' in validated_data and validated_data['space'] is not None:
+            space = validated_data['space']
+        else:
+            space = self.context['request'].space
+        validated_data['space'] = space
+        
         # supermarket category needs to be handled manually as food.get or create does not create nested serializers unlike a super.create of serializer
         if 'supermarket_category' in validated_data and validated_data['supermarket_category']:
             sm_category = validated_data['supermarket_category']
@@ -884,7 +940,7 @@ class FoodSerializer(UniqueFieldsMixin, WritableNestedModelSerializer, ExtendedR
         fields = (
             'id', 'name', 'plural_name', 'description', 'shopping', 'recipe', 'url', 'properties', 'properties_food_amount', 'properties_food_unit', 'fdc_id',
             'food_onhand', 'supermarket_category', 'image', 'parent', 'numchild', 'numrecipe', 'inherit_fields', 'full_name', 'ignore_shopping',
-            'substitute', 'substitute_siblings', 'substitute_children', 'substitute_onhand', 'child_inherit_fields', 'open_data_slug',
+            'substitute', 'substitute_siblings', 'substitute_children', 'substitute_onhand', 'child_inherit_fields', 'open_data_slug', 'space'
         )
         read_only_fields = ('id', 'numchild', 'parent', 'image', 'numrecipe')
 
