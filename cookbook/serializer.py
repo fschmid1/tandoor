@@ -608,10 +608,6 @@ class KeywordSerializer(UniqueFieldsMixin, ExtendedRecipeMixin):
             space = self.context['request'].space
 
         print(space)
-        
-        # Ensure space is included in defaults for get_or_create
-        validated_data['space'] = space
-        
         obj, created = Keyword.objects.get_or_create(name=name, space=space, defaults=validated_data)
         return obj
 
