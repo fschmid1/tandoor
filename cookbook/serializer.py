@@ -607,7 +607,9 @@ class KeywordSerializer(UniqueFieldsMixin, ExtendedRecipeMixin):
         else:
             space = self.context['request'].space
 
-        print(space)
+        print("name:", name)
+        print("space:", space)
+        print("validated_data:", validated_data)
         obj, created = Keyword.objects.get_or_create(name=name, space=space, defaults=validated_data)
         return obj
 
