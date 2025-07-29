@@ -600,8 +600,9 @@ class KeywordSerializer(UniqueFieldsMixin, ExtendedRecipeMixin):
         print("name:", name)
         print("space:", space)
         print("validated_data:", validated_data)
-        obj, created = Keyword.objects.get_or_create(name=name, space=space, defaults=validated_data)
-        return obj
+        d = Keyword.objects.get_or_create(name=name, space=space, defaults=validated_data)
+        print("keyword:", d)
+        return d
 
     @extend_schema_field(str)
     def get_label(self, obj):
