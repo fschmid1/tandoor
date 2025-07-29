@@ -590,11 +590,11 @@ class KeywordSerializer(UniqueFieldsMixin, ExtendedRecipeMixin):
         # since multi select tags dont have id's
         # duplicate names might be routed to create
         name = validated_data.pop('name').strip()
-        # space = None
-        # if 'space' in validated_data and validated_data['space'] is not None:
-        #     space = validated_data['space']
-        # else:
-        space = self.context['request'].space
+        space = None
+        if 'space' in validated_data and validated_data['space'] is not None:
+            space = validated_data['space']
+        else:
+            space = self.context['request'].space
         validated_data['space'] = space
         validated_data['name'] = name
         print("name:", name)
@@ -665,9 +665,10 @@ class UnitSerializer(UniqueFieldsMixin, ExtendedRecipeMixin, OpenDataModelMixin)
                 space=space).first():
             return unit
 
-        obj, created = Unit.objects.get_or_create(name__iexact=validated_data['name'], space=space,
+        d  = Unit.objects.get_or_create(name__iexact=validated_data['name'], space=space,
                                                   defaults=validated_data)
-        return obj
+        print("d:", d)
+        # return obj
 
     def update(self, instance, validated_data):
         validated_data['name'] = validated_data['name'].strip()
