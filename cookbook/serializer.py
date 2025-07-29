@@ -580,41 +580,36 @@ class KeywordSerializer(UniqueFieldsMixin, ExtendedRecipeMixin):
     )
     recipe_filter = 'keywords'
 
+    label = serializers.SerializerMethodField('get_label', allow_null=False)
+    parent = IntegerField(read_only=True)
+
+    recipe_filter = 'keywords'
+
     @extend_schema_field(str)
     def get_label(self, obj):
         return str(obj)
 
-    def get_fields(self, *args, **kwargs):
-        fields = super().get_fields(*args, **kwargs)
-        try:
-            if not has_group_permission(self.context['request'].user, ['admin']):
-                fields.pop('space', None)
-        except (KeyError, AttributeError):
-            fields.pop('space', None)
-        return fields
+    def create(self, validated_data):
+        # since multi select tags dont have id's
+        # duplicate names might be routed to create
+        name = validated_data.pop('name').strip()
+        space = None
+        if 'space' in validated_data and validated_data['space'] is not None:
+            space = validated_data['space']
+        else:
+            space = self.context['request'].space
+        obj, created = Keyword.objects.get_or_create(name=name, space=space, defaults=validated_data)
+        return obj
+
+    @extend_schema_field(str)
+    def get_label(self, obj):
+        return str(obj)
 
     def validate(self, data):
         if 'space' in data and data['space'] is not None:
             if not has_group_permission(self.context['request'].user, ['admin']):
                 raise serializers.ValidationError(_('Only admin users can specify a different space for keywords.'))
         return super().validate(data)
-
-    def create(self, validated_data):
-        name = validated_data.pop('name').strip()
-        # Use specified space if provided by admin user, otherwise use current space
-        if 'space' in validated_data and validated_data['space'] is not None:
-            space = validated_data['space']
-        else:
-            space = self.context['request'].space
-
-        obj, created = Keyword.objects.get_or_create(name=name, space=space)
-        return obj
-
-    def update(self, instance, validated_data):
-        if 'space' in validated_data and validated_data['space'] is not None:
-            if not has_group_permission(self.context['request'].user, ['admin']):
-                raise serializers.ValidationError(_('Only admin users can change the space of keywords.'))
-        return super().update(instance, validated_data)
 
     class Meta:
         model = Keyword
