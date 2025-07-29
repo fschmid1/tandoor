@@ -590,11 +590,11 @@ class KeywordSerializer(UniqueFieldsMixin, ExtendedRecipeMixin):
         # since multi select tags dont have id's
         # duplicate names might be routed to create
         name = validated_data.pop('name').strip()
-        space = None
-        if 'space' in validated_data and validated_data['space'] is not None:
-            space = validated_data['space']
-        else:
-            space = self.context['request'].space
+        # space = None
+        # if 'space' in validated_data and validated_data['space'] is not None:
+        #     space = validated_data['space']
+        # else:
+        space = self.context['request'].space
         validated_data['space'] = space
         validated_data['name'] = name
         print("name:", name)
