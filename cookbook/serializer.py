@@ -570,15 +570,12 @@ class KeywordLabelSerializer(serializers.ModelSerializer):
 
 
 class KeywordSerializer(UniqueFieldsMixin, ExtendedRecipeMixin):
-    label = serializers.SerializerMethodField('get_label', allow_null=False)
-    parent = IntegerField(read_only=True)
     space = serializers.PrimaryKeyRelatedField(
         queryset=Space.objects.all(),
         required=False,
         allow_null=True,
         help_text=_('Space to create the keyword in. Only available to admin users.')
     )
-    recipe_filter = 'keywords'
 
     label = serializers.SerializerMethodField('get_label', allow_null=False)
     parent = IntegerField(read_only=True)
