@@ -667,10 +667,11 @@ class UnitSerializer(UniqueFieldsMixin, ExtendedRecipeMixin, OpenDataModelMixin)
                 space=space).first():
             return unit
 
-        d  = Unit.objects.get_or_create(name__iexact=validated_data['name'], space=space,
+        unit, created = Unit.objects.get_or_create(name__iexact=validated_data['name'], space=space,
                                                   defaults=validated_data)
-        print("d:", d)
-        # return obj
+        print("unit:", unit)
+        print("created:", created)
+        return unit
 
     def update(self, instance, validated_data):
         validated_data['name'] = validated_data['name'].strip()
