@@ -855,10 +855,10 @@ class FoodSerializer(UniqueFieldsMixin, WritableNestedModelSerializer, ExtendedR
             return food
 
         # Use specified space if provided by admin user, otherwise use current space
-        if 'space' in validated_data and validated_data['space'] is not None:
-            space = validated_data['space']
-        else:
-            space = self.context['request'].space
+        # if 'space' in validated_data and validated_data['space'] is not None:
+        #     space = validated_data['space']
+        # else:
+        space = self.context['request'].space
         validated_data['space'] = space
         
         # supermarket category needs to be handled manually as food.get or create does not create nested serializers unlike a super.create of serializer
