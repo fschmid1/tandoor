@@ -728,6 +728,31 @@ class KeywordViewSet(LoggingMixin, TreeMixin):
     permission_classes = [(CustomIsGuest & IsReadOnlyDRF | CustomIsUser) & CustomTokenHasReadWriteScope]
     pagination_class = DefaultPagination
 
+    @extend_schema(
+        parameters=[OpenApiParameter(name='space_id', description='ID of the space to filter keywords by', type=int, required=True)],
+        responses=KeywordSerializer(many=True)
+    )
+    @decorators.action(detail=False, pagination_class=None, methods=['GET'], serializer_class=KeywordSerializer)
+    def by_space(self, request):
+        """
+        Get all keywords for a specific space. Admin only.
+        """
+        if not has_group_permission(request.user, ['admin']):
+            raise PermissionDenied(detail='Only admin users can access this endpoint', code=403)
+        
+        space_id = request.query_params.get('space_id')
+        if not space_id:
+            raise ValidationError({'space_id': 'space_id parameter is required'})
+        
+        try:
+            space_id = int(space_id)
+        except ValueError:
+            raise ValidationError({'space_id': 'space_id must be a valid integer'})
+        
+        queryset = self.queryset.filter(space_id=space_id)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
 
 class UnitViewSet(LoggingMixin, MergeMixin, FuzzyFilterMixin):
     queryset = Unit.objects
@@ -735,6 +760,31 @@ class UnitViewSet(LoggingMixin, MergeMixin, FuzzyFilterMixin):
     serializer_class = UnitSerializer
     permission_classes = [CustomIsUser & CustomTokenHasReadWriteScope]
     pagination_class = DefaultPagination
+
+    @extend_schema(
+        parameters=[OpenApiParameter(name='space_id', description='ID of the space to filter units by', type=int, required=True)],
+        responses=UnitSerializer(many=True)
+    )
+    @decorators.action(detail=False, pagination_class=None, methods=['GET'], serializer_class=UnitSerializer)
+    def by_space(self, request):
+        """
+        Get all units for a specific space. Admin only.
+        """
+        if not has_group_permission(request.user, ['admin']):
+            raise PermissionDenied(detail='Only admin users can access this endpoint', code=403)
+        
+        space_id = request.query_params.get('space_id')
+        if not space_id:
+            raise ValidationError({'space_id': 'space_id parameter is required'})
+        
+        try:
+            space_id = int(space_id)
+        except ValueError:
+            raise ValidationError({'space_id': 'space_id must be a valid integer'})
+        
+        queryset = self.queryset.filter(space_id=space_id)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
 
 class FoodInheritFieldViewSet(LoggingMixin, viewsets.ReadOnlyModelViewSet):
@@ -782,6 +832,31 @@ class FoodViewSet(LoggingMixin, TreeMixin):
         if self.request and self.request.query_params.get('simple', False):
             return FoodSimpleSerializer
         return self.serializer_class
+
+    @extend_schema(
+        parameters=[OpenApiParameter(name='space_id', description='ID of the space to filter foods by', type=int, required=True)],
+        responses=FoodSerializer(many=True)
+    )
+    @decorators.action(detail=False, pagination_class=None, methods=['GET'], serializer_class=FoodSerializer)
+    def by_space(self, request):
+        """
+        Get all foods for a specific space. Admin only.
+        """
+        if not has_group_permission(request.user, ['admin']):
+            raise PermissionDenied(detail='Only admin users can access this endpoint', code=403)
+        
+        space_id = request.query_params.get('space_id')
+        if not space_id:
+            raise ValidationError({'space_id': 'space_id parameter is required'})
+        
+        try:
+            space_id = int(space_id)
+        except ValueError:
+            raise ValidationError({'space_id': 'space_id must be a valid integer'})
+        
+        queryset = self.queryset.filter(space_id=space_id)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
     # TODO I could not find any usage of this and it causes schema generation issues, so commenting it for now
     # this is used on the Shopping Badge
