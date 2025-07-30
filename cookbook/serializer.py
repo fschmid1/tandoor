@@ -669,8 +669,6 @@ class UnitSerializer(UniqueFieldsMixin, ExtendedRecipeMixin, OpenDataModelMixin)
 
         unit, created = Unit.objects.get_or_create(name__iexact=validated_data['name'], space=space,
                                                   defaults=validated_data)
-        print("unit:", unit)
-        print("created:", created)
         return unit
 
     def update(self, instance, validated_data):
@@ -821,15 +819,6 @@ class FoodSerializer(UniqueFieldsMixin, WritableNestedModelSerializer, ExtendedR
     recipe_filter = 'steps__ingredients__food'
     images = ['recipe__image']
 
-    def get_fields(self, *args, **kwargs):
-        fields = super().get_fields(*args, **kwargs)
-        try:
-            if not has_group_permission(self.context['request'].user, ['admin']):
-                fields.pop('space', None)
-        except (KeyError, AttributeError):
-            fields.pop('space', None)
-        return fields
-
     def validate(self, data):
         if 'space' in data and data['space'] is not None:
             if not has_group_permission(self.context['request'].user, ['admin']):
@@ -905,16 +894,18 @@ class FoodSerializer(UniqueFieldsMixin, WritableNestedModelSerializer, ExtendedR
 
         properties = validated_data.pop('properties', None)
 
-        obj, created = Food.objects.get_or_create(name=name, plural_name=plural_name, space=space,
+        food, created = Food.objects.get_or_create(name=name, plural_name=plural_name, space=space,
                                                   properties_food_unit=properties_food_unit,
                                                   defaults=validated_data)
+        print("food:", food)
+        print("created:", created)
 
         if properties and len(properties) > 0:
             for p in properties:
-                obj.properties.add(Property.objects.create(property_type_id=p['property_type']['id'],
+                food.properties.add(Property.objects.create(property_type_id=p['property_type']['id'],
                                                            property_amount=p['property_amount'], space=space))
 
-        return obj
+        return food
 
     def update(self, instance, validated_data):
         if name := validated_data.get('name', None):
