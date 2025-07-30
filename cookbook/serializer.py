@@ -597,12 +597,7 @@ class KeywordSerializer(UniqueFieldsMixin, ExtendedRecipeMixin):
             space = self.context['request'].space
         validated_data['space'] = space
         validated_data['name'] = name
-        print("name:", name)
-        print("space:", space)
-        print("validated_data:", validated_data)
         keyword, created = Keyword.objects.get_or_create(name=name, space=space, defaults=validated_data)
-        print("keyword:", keyword)
-        print("created:", created)
         return keyword
 
     @extend_schema_field(str)
@@ -893,6 +888,10 @@ class FoodSerializer(UniqueFieldsMixin, WritableNestedModelSerializer, ExtendedR
             properties_food_unit = Unit.objects.filter(name=properties_food_unit['name']).first()
 
         properties = validated_data.pop('properties', None)
+
+        print("space:", space)
+        print("properties_food_unit:", properties_food_unit)
+        print("validated_data:", validated_data)
 
         food, created = Food.objects.get_or_create(name=name, plural_name=plural_name, space=space,
                                                   properties_food_unit=properties_food_unit,
