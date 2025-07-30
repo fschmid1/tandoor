@@ -890,7 +890,8 @@ class FoodSerializer(UniqueFieldsMixin, WritableNestedModelSerializer, ExtendedR
         properties = validated_data.pop('properties', None)
 
         print("space:", space)
-        print("properties_food_unit:", properties_food_unit)
+        print("name:", name)
+        print("plural_name:", plural_name)
         print("validated_data:", validated_data)
 
         food, created = Food.objects.get_or_create(name=name, plural_name=plural_name, space=space,
