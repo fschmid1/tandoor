@@ -803,6 +803,7 @@ class FoodViewSet(LoggingMixin, TreeMixin):
     serializer_class = FoodSerializer
     permission_classes = [(CustomIsGuest & IsReadOnlyDRF | CustomIsUser) & CustomTokenHasReadWriteScope]
     pagination_class = DefaultPagination
+    space = SpaceSerializer(read_only=True)
 
     def get_queryset(self):
         shared_users = []
@@ -852,7 +853,7 @@ class FoodViewSet(LoggingMixin, TreeMixin):
         except ValueError:
             raise ValidationError({'space_id': 'space_id must be a valid integer'})
         
-        queryset = self.queryset.filter(space_id=space_id).all()
+        queryset = self.queryset.filter(space=space_id).all()
         return Response(queryset)
 
     # TODO I could not find any usage of this and it causes schema generation issues, so commenting it for now
