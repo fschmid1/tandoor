@@ -750,7 +750,8 @@ class KeywordViewSet(LoggingMixin, TreeMixin):
             raise ValidationError({'space_id': 'space_id must be a valid integer'})
         
         queryset = self.queryset.filter(space_id=space_id).all()    
-        return Response(queryset)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
 
 class UnitViewSet(LoggingMixin, MergeMixin, FuzzyFilterMixin):
@@ -782,7 +783,8 @@ class UnitViewSet(LoggingMixin, MergeMixin, FuzzyFilterMixin):
             raise ValidationError({'space_id': 'space_id must be a valid integer'})
         
         queryset = self.queryset.filter(space_id=space_id).all()
-        return Response(queryset)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
 
 class FoodInheritFieldViewSet(LoggingMixin, viewsets.ReadOnlyModelViewSet):
@@ -854,7 +856,8 @@ class FoodViewSet(LoggingMixin, TreeMixin):
             raise ValidationError({'space_id': 'space_id must be a valid integer'})
         
         queryset = self.queryset.filter(space=space_id).all()
-        return Response(queryset)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
     # TODO I could not find any usage of this and it causes schema generation issues, so commenting it for now
     # this is used on the Shopping Badge
