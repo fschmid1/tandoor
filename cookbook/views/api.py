@@ -749,9 +749,8 @@ class KeywordViewSet(LoggingMixin, TreeMixin):
         except ValueError:
             raise ValidationError({'space_id': 'space_id must be a valid integer'})
         
-        queryset = self.queryset.filter(space_id=space_id)
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+        queryset = self.queryset.filter(space_id=space_id).all()    
+        return Response(queryset)
 
 
 class UnitViewSet(LoggingMixin, MergeMixin, FuzzyFilterMixin):
@@ -782,9 +781,8 @@ class UnitViewSet(LoggingMixin, MergeMixin, FuzzyFilterMixin):
         except ValueError:
             raise ValidationError({'space_id': 'space_id must be a valid integer'})
         
-        queryset = self.queryset.filter(space_id=space_id)
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+        queryset = self.queryset.filter(space_id=space_id).all()
+        return Response(queryset)
 
 
 class FoodInheritFieldViewSet(LoggingMixin, viewsets.ReadOnlyModelViewSet):
@@ -854,7 +852,7 @@ class FoodViewSet(LoggingMixin, TreeMixin):
         except ValueError:
             raise ValidationError({'space_id': 'space_id must be a valid integer'})
         
-        queryset = self.queryset.filter(space_id=space_id)
+        queryset = self.queryset.filter(space_id=space_id).all()
         return Response(queryset)
 
     # TODO I could not find any usage of this and it causes schema generation issues, so commenting it for now
