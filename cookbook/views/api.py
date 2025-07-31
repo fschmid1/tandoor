@@ -855,8 +855,7 @@ class FoodViewSet(LoggingMixin, TreeMixin):
             raise ValidationError({'space_id': 'space_id must be a valid integer'})
         
         queryset = self.queryset.filter(space_id=space_id)
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+        return Response(queryset)
 
     # TODO I could not find any usage of this and it causes schema generation issues, so commenting it for now
     # this is used on the Shopping Badge
